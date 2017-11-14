@@ -5,6 +5,7 @@
 *.list
 *.swp
 *.bak
+*.json
 phonebook_opt
 phonebook_orig
 calculate
