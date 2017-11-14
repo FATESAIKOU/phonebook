@@ -45,14 +45,14 @@ plot: output.txt
 	gnuplot scripts/runtime.gp
 
 hash-size-plot: phonebook_orig phonebook_opt
-	python executer.py "hash" phonebook_opt db hsizes > opt-multi-output.json    # default db_size = 100 ~ max, step +100, foreach hashsize
-	python grapher.py opt-multi-output.json
+	python genplot_scripts/executer.py "hash" phonebook_opt db hsizes > opt-multi-output.json    # default db_size = 100 ~ max, step +100, foreach hashsize
+	python genplot_scripts/data_processor.py opt-multi-output.json
 	
 
 integration-plot: phonebook_orig phonebook_opt
-	python executer.py "performance" phonebook_orig db > orig-multi-output.json  # default db_size = 100 ~ max, step +100, average string length(mu) = 1 ~ 100 -> unlimit
-	python executer.py "performance" phonebook_opt db > opt-multi-output.json    # default db_size = 100 ~ max, step +100, average string length(mu) = 1 ~ 100 -> unlimit
-	python grapher.py orig-multi-output.json opt-multi-output.json
+	python genplot_scripts/executer.py "performance" phonebook_orig db > orig-multi-output.json  # default db_size = 100 ~ max, step +100, average string length(mu) = 1 ~ 100 -> unlimit
+	python genplot_scripts/executer.py "performance" phonebook_opt db > opt-multi-output.json    # default db_size = 100 ~ max, step +100, average string length(mu) = 1 ~ 100 -> unlimit
+	python genplot_scripts/data_processor.py orig-multi-output.json opt-multi-output.json
 
 
 calculate: calculate.c
