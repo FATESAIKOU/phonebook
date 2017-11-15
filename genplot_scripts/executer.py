@@ -12,6 +12,7 @@ performance with provided text file, then restore the result.
 
 import sys
 import os
+import re
 import numpy as np
 
 from pprint import pprint
@@ -68,8 +69,33 @@ def dumpDB(db, filename):
     src.close()
 
 
+def collectData(outputs, times):
+    data = {}
+    data['cache-misses'] = int(re.search('(.+?)cache-misses', outputs).group(1).replace(',', ''))
+    data['cache-references'] = int(re.search('(.+?)cache-references', outputs).group(1).replace(',', ''))
+    data['cache-miss-rate'] = str(data['cache-misses'] * 100.0 / data['cache-references']) + '%'
+
+    append_times = re.findall('append\(\) : (.+?) sec', outputs)
+    data['append_avg'] = sum([float(f) for f in append_times]) / times
+
+    findname_times = re.findall('findName\(\) : (.+?) sec', outputs)
+    data['findname_avg'] = sum([float(f) for f in findname_times]) / times
+
+    encode_times = re.findall('encode\(\) : (.+?) sec', outputs)
+    data['encode_avg'] = sum([float(f) for f in encode_times]) / times
+
+    collision_count = re.findall('collision : (.+?)', outputs)
+    data['collision'] = sum([int(c) for c in collision_count]) / times
+
+    return data
+
 def main():
-    db = loadDB(sys.argv[1])
+    mode      = sys.argv[1]
+    phonebook = sys.argv[2]
+    text_file = sys.argv[3]
+
+
+    db = loadDB(text_file)
     pprint(describeDB(db))
 
     n_db_size = 100
@@ -78,11 +104,14 @@ def main():
             break
 
         for j in xrange(1, 10):
-            print "Size:", n_db_size, "Len:", j
+            print "Size:", n_db_size, "Mu:", j, "Sigma:", round(j / 2)
             n_db = genDB(db, n_db_size, j)
 
             filename = "dictionary/" + str(n_db_size) + "-" + str(j) + ".txt"
             dumpDB(n_db, filename)
+            outputs = os.popen("perf stat -e cache-misses,cache-references,instructions,cycles --repeat 20 ./" + phonebook + " " + filename + " 2>&1").read()
+
+            pprint(collectData(outputs, 20))
             os.remove(filename)
 
 
