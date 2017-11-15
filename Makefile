@@ -52,7 +52,8 @@ hash-size-plot: phonebook_orig phonebook_opt
 integration-plot: phonebook_orig phonebook_opt
 	python genplot_scripts/executer.py "performance" phonebook_orig db > orig-multi-output.json  # default db_size = 100 ~ max, step +100, average string length(mu) = 1 ~ 100 -> unlimit
 	python genplot_scripts/executer.py "performance" phonebook_opt db > opt-multi-output.json    # default db_size = 100 ~ max, step +100, average string length(mu) = 1 ~ 100 -> unlimit
-	python genplot_scripts/data_processor.py orig-multi-output.json opt-multi-output.json
+	python genplot_scripts/data_processor.py orig-multi-output.json
+	python genplot_scripts/data_processor.py opt-multi-output.json
 
 
 calculate: calculate.c
