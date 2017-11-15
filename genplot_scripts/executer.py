@@ -13,6 +13,7 @@ performance with provided text file, then restore the result.
 import sys
 import os
 import re
+import json
 import numpy as np
 
 from pprint import pprint
@@ -73,21 +74,42 @@ def collectData(outputs, times):
     data = {}
     data['cache-misses'] = int(re.search('(.+?)cache-misses', outputs).group(1).replace(',', ''))
     data['cache-references'] = int(re.search('(.+?)cache-references', outputs).group(1).replace(',', ''))
-    data['cache-miss-rate'] = str(data['cache-misses'] * 100.0 / data['cache-references']) + '%'
+    data['cache-miss-rate'] = data['cache-misses'] * 100.0 / data['cache-references']
 
     append_times = re.findall('append\(\) : (.+?) sec', outputs)
-    data['append_avg'] = sum([float(f) for f in append_times]) / times
+    data['append-avg'] = sum([float(f) for f in append_times]) / times
 
     findname_times = re.findall('findName\(\) : (.+?) sec', outputs)
-    data['findname_avg'] = sum([float(f) for f in findname_times]) / times
+    data['findname-avg'] = sum([float(f) for f in findname_times]) / times
 
     encode_times = re.findall('encode\(\) : (.+?) sec', outputs)
-    data['encode_avg'] = sum([float(f) for f in encode_times]) / times
+    data['encode-avg'] = sum([float(f) for f in encode_times]) / times
 
     collision_count = re.findall('collision : (.+?)', outputs)
     data['collision'] = sum([int(c) for c in collision_count]) / times
 
     return data
+
+def dumpData(data, dump_file):
+    packed_data = {
+        'cache-misses': [],
+        'cache-references': [],
+        'cache-miss-rate': [],
+        'append-avg': [],
+        'findname-avg': [],
+        'encode-avg': [],
+        'collision': []
+    }
+
+    for (db_size, mu) in data.keys():
+        record = data[(db_size, mu)]
+        for col in record.keys():
+            packed_data[col].append([db_size, mu, record[col]])
+
+    src = open(dump_file, 'w')
+    src.write(json.dumps(packed_data))
+    src.close()
+
 
 def main():
     mode      = sys.argv[1]
@@ -99,6 +121,7 @@ def main():
     pprint(describeDB(db))
 
     n_db_size = 100
+    result = {}
     while True:
         if n_db_size > len(db):
             break
@@ -107,15 +130,18 @@ def main():
             print "Size:", n_db_size, "Mu:", j, "Sigma:", round(j / 2)
             n_db = genDB(db, n_db_size, j)
 
-            filename = "dictionary/" + str(n_db_size) + "-" + str(j) + ".txt"
-            dumpDB(n_db, filename)
-            outputs = os.popen("perf stat -e cache-misses,cache-references,instructions,cycles --repeat 20 ./" + phonebook + " " + filename + " 2>&1").read()
+            n_db_name = "dictionary/" + str(n_db_size) + "-" + str(j) + ".txt"
+            dumpDB(n_db, n_db_name)
+            outputs = os.popen("perf stat -e cache-misses,cache-references,instructions,cycles --repeat 20 ./" + phonebook + " " + n_db_name + " 2>&1").read()
 
-            pprint(collectData(outputs, 20))
-            os.remove(filename)
+            result[(n_db_size, j)] = collectData(outputs, 20)
+            pprint(result[(n_db_size, j)])
 
+            os.remove(n_db_name)
 
-        n_db_size = int(n_db_size * 1.05)
+        n_db_size = int(n_db_size * 2)
+
+    dumpData(result, 'output.json')
         
 
 if __name__ == "__main__":
