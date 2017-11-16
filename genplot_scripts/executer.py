@@ -90,7 +90,8 @@ def collectData(outputs, times):
 
     return data
 
-def dumpData(data, dump_file):
+
+def dumpData(data, db_description, dump_file):
     packed_data = {
         'cache-misses': [],
         'cache-references': [],
@@ -106,8 +107,16 @@ def dumpData(data, dump_file):
         for col in record.keys():
             packed_data[col].append([db_size, mu, record[col]])
 
+    packed_db_description = [[i, db_description[i]] for i in db_description.keys()]
+
+
+    packed_result = {
+        "data": packed_data,
+        "db": packed_db_description
+    }
+
     src = open(dump_file, 'w')
-    src.write(json.dumps(packed_data))
+    src.write(json.dumps(packed_result))
     src.close()
 
 
@@ -118,7 +127,7 @@ def main():
 
 
     db = loadDB(text_file)
-    pprint(describeDB(db))
+    db_description = describeDB(db)
 
     n_db_size = 100
     result = {}
@@ -141,7 +150,7 @@ def main():
 
         n_db_size = int(n_db_size * 2)
 
-    dumpData(result, 'output.json')
+    dumpData(result, db_description, 'output.json')
         
 
 if __name__ == "__main__":

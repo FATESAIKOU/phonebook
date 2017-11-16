@@ -20,7 +20,9 @@ def process(data):
     return data
 
 
-def writePlotData(data, prefix):
+def writePlotData(result, prefix):
+    data = result['data']
+
     for col in data.keys():
         records = data[col]
 
@@ -38,16 +40,26 @@ def writePlotData(data, prefix):
         src.close()
 
 
-def main():
-    data_file = sys.argv[1]
-    output_file_prefix = sys.argv[2]
-
-    src = open(data_file, 'r')
-    data = json.loads(src.read())
+    db_description = result['db']
+    s = ""
+    for (k, v) in db_description:
+        s += str(k) + ' ' + str(v) + '\n'
+        
+    src = open(prefix + '-db.txt', 'w')
+    src.write(s)
     src.close()
 
-    n_data = process(data)
-    writePlotData(n_data, output_file_prefix)
+
+def main():
+    result_file = sys.argv[1]
+    output_file_prefix = sys.argv[2]
+
+    src = open(result_file, 'r')
+    result = json.loads(src.read())
+    src.close()
+
+    result['data'] = process(result['data'])
+    writePlotData(result, output_file_prefix)
     
 
 if __name__ == "__main__":
