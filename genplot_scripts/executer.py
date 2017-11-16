@@ -123,7 +123,7 @@ def dumpData(data, db_description, dump_file):
     src.close()
 
 
-def perf(db, phonebook, mode, prime_list):
+def perf(db, phonebook, mode, prime_list=[]):
     n_db_size = 100
     result = {}
     tmp_db_name = "dictionary/tmp.txt"
