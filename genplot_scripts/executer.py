@@ -36,6 +36,7 @@ def loadDB(filename):
 
     return db;
 
+
 def describeDB(db):
     counter = {}
 
@@ -48,14 +49,16 @@ def describeDB(db):
 
 
 def genDB(db, db_size, mu):
+    if mu < 0:
+        return db[:db_size]
+
+    new_db = []
     sigma = round(mu / 2)
     gr = lambda u, s: int(round(np.random.normal(u, s, 1)[0]))
 
-    new_db = []
     for i in xrange(db_size):
         new_len = gr(mu, sigma)
         new_len = 1 if new_len == 0 else new_len
-
         new_string = db[i][:new_len]
         new_string.ljust(new_len, '-')
         
@@ -120,38 +123,67 @@ def dumpData(data, db_description, dump_file):
     src.close()
 
 
-def main():
-    mode      = sys.argv[1]
-    phonebook = sys.argv[2]
-    text_file = sys.argv[3]
-
-
-    db = loadDB(text_file)
-    db_description = describeDB(db)
-
+def perf(db, phonebook, mode, prime_list):
     n_db_size = 100
     result = {}
+    tmp_db_name = "dictionary/tmp.txt"
+    exe_command = "perf stat -e cache-misses,cache-references,instructions,cycles --repeat 20 ./" + phonebook + " " + tmp_db_name
+
+
+    if mode == 'Performance':
+        j_iterator = xrange(1, 10)
+    elif mode == 'Hash':
+        j_iterator = prime_list[:20]
+
+
     while True:
         if n_db_size > len(db):
             break
 
-        for j in xrange(1, 10):
-            print "Size:", n_db_size, "Mu:", j, "Sigma:", round(j / 2)
-            n_db = genDB(db, n_db_size, j)
+        for j in j_iterator:
+            if mode == 'Performance':
+                print "Size:", n_db_size, "Mu:", j, "Sigma:", round(j / 2)
+                n_db = genDB(db, n_db_size, j)
+                real_exe_command = exe_command
+            elif mode == 'Hash':
+                print "Size:", n_db_size, "Hashsize:", j
+                n_db = genDB(db, n_db_size, j)
+                real_exe_command = exe_command + ' ' + str(j)
 
-            n_db_name = "dictionary/" + str(n_db_size) + "-" + str(j) + ".txt"
-            dumpDB(n_db, n_db_name)
-            outputs = os.popen("perf stat -e cache-misses,cache-references,instructions,cycles --repeat 20 ./" + phonebook + " " + n_db_name + " 2>&1").read()
+            dumpDB(n_db, tmp_db_name)
+            outputs = os.popen(real_exe_command + " 2>&1").read()
 
             result[(n_db_size, j)] = collectData(outputs, 20)
             pprint(result[(n_db_size, j)])
 
-            os.remove(n_db_name)
+            os.remove(tmp_db_name)
 
         n_db_size = int(n_db_size * 2)
 
+    return result
+
+
+def main():
+    mode      = sys.argv[1]
+    phonebook = sys.argv[2]
+    text_file = sys.argv[3]
+    hash_list_file = sys.argv[4]
+
+    db = loadDB(text_file)
+    db_description = describeDB(db)
+
+    if mode == 'Performance':
+        result = perf(db, phonebook, mode)
+    elif mode == 'Hash':
+        src = open(hash_list_file)
+        prime_nums = json.loads(src.read())
+        src.close()
+        result = perf(db, phonebook, mode, prime_nums)
+
     dumpData(result, db_description, 'output.json')
-        
+
 
 if __name__ == "__main__":
     main()
+
+
