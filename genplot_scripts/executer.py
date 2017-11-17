@@ -131,14 +131,14 @@ def perf(db, phonebook, mode, prime_list=[]):
 
 
     if mode == 'Performance':
-        j_iterator = xrange(1, 10)
+        j_iterator = xrange(1, 20)
     elif mode == 'Hash':
         j_iterator = prime_list[:20]
 
 
     while True:
         if n_db_size > len(db):
-            break
+            n_db_size = len(db)
 
         for j in j_iterator:
             if mode == 'Performance':
@@ -158,7 +158,10 @@ def perf(db, phonebook, mode, prime_list=[]):
 
             os.remove(tmp_db_name)
 
-        n_db_size = int(n_db_size * 2)
+        if n_db_size == len(db):
+            break
+
+        n_db_size = int(n_db_size * 1.5)
 
     return result
 
@@ -167,7 +170,7 @@ def main():
     mode      = sys.argv[1]
     phonebook = sys.argv[2]
     text_file = sys.argv[3]
-    hash_list_file = sys.argv[4]
+    hash_list_file = sys.argv[4] if len(sys.argv) > 4 else None
 
     db = loadDB(text_file)
     db_description = describeDB(db)
